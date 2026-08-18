@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ПрокатИнструмент — аренда и магазин</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #FAF8F3;
+    --bg-panel: #F0ECE1;
+    --surface: #FFFFFF;
+    --ink: #22262B;                /* dark text, page is light now */
+    --ink-card: #22262B;          /* dark text, used inside white cards/modal */
+    --muted: #7A7364;             /* muted text on light bg */
+    --muted-card: #6B6459;        /* muted text on white card */
+    --accent: #F2B705;            /* safety yellow */
+    --accent-2: #E4650F;          /* spark orange */
+    --accent-ink: #241900;
+    --rent: #C1440E;
+    --shop: #1E9463;
+    --line: #E2DCCC;              /* dividers on light bg */
+    --line-card: #E4DFD3;         /* dividers on white card */
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse 600px 300px at 12% -5%, rgba(242,183,5,0.10), transparent 60%),
+      radial-gradient(ellipse 500px 260px at 92% 8%, rgba(228,101,15,0.08), transparent 60%),
+      var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    padding-bottom: 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3, .display{
+    font-family: 'Oswald', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+  .mono{ font-family: 'JetBrains Mono', monospace; }
+
+  /* ---------- Topbar / logo badge ---------- */
+  .topbar{
+    background: linear-gradient(180deg, #17181A, #101012);
+    color: #EFEBE2;
+    padding: 14px 20px;
+    display:flex; align-items:center; justify-content:space-between;
+    position: sticky; top:0; z-index: 40;
+    border-bottom: 3px solid var(--accent);
+    box-shadow: 0 2px 18px rgba(0,0,0,0.45);
+  }
+  .brand{
+    display:flex; align-items:center; gap:12px;
+  }
+  .brand-badge{
+    width:38px; height:38px; flex-shrink:0;
+    background: linear-gradient(145deg, var(--accent), var(--accent-2));
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 0 0 2px rgba(255,198,26,0.15), 0 4px 10px rgba(255,122,26,0.25);
+  }
+  .brand-badge svg{ width:20px; height:20px; }
+  .brand-name{
+    font-family:'Oswald', sans-serif; font-weight:700; font-size:19px;
+    letter-spacing:0.04em; text-transform:uppercase; line-height:1;
+    background: linear-gradient(180deg, #FFFFFF 10%, #D8D2C4 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .brand-name span{ display:block; font-family:'JetBrains Mono'; font-size:9px; letter-spacing:0.15em; color: var(--accent); -webkit-text-fill-color: var(--accent); margin-top:2px; font-weight:700;}
+  .admin-toggle{
+    background: transparent; border: 1px solid rgba(239,235,226,0.22);
+    color: #EFEBE2; font-family:'Inter'; font-size:13px; padding:8px 14px;
+    border-radius: 20px; cursor:pointer; transition: all .15s ease;
+  }
+  .admin-toggle:hover{ background: rgba(239,235,226,0.08); }
+  .admin-toggle.active{ background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight:700; }
+
+  /* ---------- Hero: dark industrial scene with hazard frame + sparks ---------- */
+  .hero-wrap{ position: relative; overflow:hidden; }
+  .hero-wrap::before{
+    /* hazard stripe corners like the reference banner */
+    content:''; position:absolute; top:0; left:0; width:120px; height:14px;
+    background: repeating-linear-gradient(135deg, var(--accent) 0 10px, #1a1a1a 10px 20px);
+    opacity:0.85;
+  }
+  .hero-wrap::after{
+    content:''; position:absolute; bottom:0; right:0; width:120px; height:14px;
+    background: repeating-linear-gradient(135deg, var(--accent) 0 10px, #1a1a1a 10px 20px);
+    opacity:0.85;
+  }
+  .sparks{ position:absolute; inset:0; pointer-events:none; z-index:0; }
+  .sparks span{
+    position:absolute; border-radius:50%; background: var(--accent-2);
+    box-shadow: 0 0 6px 1px rgba(228,101,15,0.35);
+    opacity: 0.5;
+  }
+
+  .hero{
+    padding: 58px 20px 34px;
+    max-width: 980px; margin: 0 auto;
+    position:relative; z-index:1;
+  }
+  .hero .eyebrow{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    letter-spacing:0.1em; text-transform:uppercase; color: var(--accent-ink);
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    padding:5px 12px; border-radius:3px; margin-bottom:18px; font-weight:700;
+    clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+  }
+  .hero h1{
+    font-size: clamp(32px, 6vw, 54px); line-height:1.03; color: var(--ink);
+  }
+  .hero h1 em{
+    font-style:normal;
+    background: linear-gradient(180deg, var(--accent) 20%, var(--accent-2) 100%);
+    -webkit-background-clip: text; background-clip:text; color:transparent;
+  }
+  .hero p.sub{ color:var(--muted); font-size:16px; max-width:520px; margin-top:16px; line-height:1.55;}
+
+  /* ---------- Tabs ---------- */
+  .tabs{
+    max-width: 980px; margin: 0 auto; padding: 0 20px;
+    display:flex; gap:8px; border-bottom: 1px solid var(--line);
+    position:relative; z-index:1;
+  }
+  .tab-btn{
+    font-family:'Oswald', sans-serif; text-transform:uppercase; letter-spacing:0.03em;
+    font-size:15px; font-weight:600; background:none; border:none; cursor:pointer;
+    padding: 12px 4px; margin-right: 26px; color: var(--muted);
+    border-bottom: 3px solid transparent; transition: color .15s ease, border-color .15s ease;
+  }
+  .tab-btn.active{ color: var(--ink); border-bottom-color: var(--accent-2); }
+  .tab-btn .count{ font-family:'JetBrains Mono'; font-size:12px; opacity:0.7; margin-left:6px;}
+
+  .content{ max-width: 980px; margin: 0 auto; padding: 30px 20px 20px; position:relative; z-index:1;}
+
+  .toolbar-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; }
+  .section-title{ font-size:13px; color:var(--muted); font-family:'JetBrains Mono'; letter-spacing:0.06em; text-transform:uppercase; }
+  .add-btn{
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: var(--accent-ink); border:none; border-radius:10px;
+    padding: 10px 18px; font-family:'Inter'; font-weight:700; font-size:14px; cursor:pointer;
+    display:flex; align-items:center; gap:6px; box-shadow: 0 4px 14px rgba(255,122,26,0.25);
+  }
+  .add-btn:hover{ filter: brightness(1.06); }
+
+  .grid{
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 24px 18px;
+  }
+
+  /* ---------- Signature element: hanging inventory tag card ---------- */
+  .card{
+    background: var(--surface);
+    color: var(--ink-card);
+    border-radius: 4px 4px var(--radius) var(--radius);
+    position: relative;
+    padding-top: 18px;
+    border: 1px solid var(--line-card);
+    box-shadow: 0 6px 18px rgba(34,38,43,0.08);
+    transform: rotate(var(--tilt, -0.6deg));
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .card:nth-child(odd){ --tilt: 0.8deg; }
+  .card:hover{ transform: rotate(0deg) translateY(-4px); box-shadow: 0 12px 24px rgba(34,38,43,0.14); }
+  .card::before{
+    content:''; position:absolute; top:6px; left:50%; transform: translateX(-50%);
+    width:12px; height:12px; background: var(--bg); border-radius:50%;
+    border: 2px solid var(--line-card); z-index:2;
+  }
+  .card::after{
+    content:''; position:absolute; top:-14px; left:50%; transform: translateX(-50%);
+    width:1px; height:14px; background: #55524a; opacity:0.6;
+  }
+  .card-photo{
+    width:100%; aspect-ratio: 4/3; object-fit: cover; background: #F1EEE7;
+    display:block; border-bottom: 1px dashed var(--line-card);
+  }
+  .card-photo.placeholder{
+    display:flex; align-items:center; justify-content:center; color: var(--muted-card);
+    font-family:'JetBrains Mono'; font-size:12px;
+  }
+  .card-body{ padding: 14px 16px 16px; }
+  .card-body h3{ font-size:16px; margin-bottom:6px; text-transform:none; letter-spacing:0; font-family:'Inter'; font-weight:700; color: var(--ink-card);}
+  .card-desc{ font-size:13px; color:var(--muted-card); margin-bottom:12px; line-height:1.4; min-height: 0;}
+  .price-row{ display:flex; align-items:baseline; justify-content:space-between; }
+  .price{ font-family:'JetBrains Mono'; font-weight:700; font-size:18px; }
+  .price.rent-color{ color: var(--rent); }
+  .price.shop-color{ color: #1E9463; }
+  .price-unit{ font-size:11px; color: var(--muted-card); font-weight:500; }
+  .badge{
+    position:absolute; top:14px; right:-8px; font-family:'JetBrains Mono'; font-size:10px;
+    letter-spacing:0.05em; text-transform:uppercase; padding:3px 8px; border-radius: 3px;
+    color:#fff; font-weight:700; box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  }
+  .badge.rent{ background: var(--rent); }
+  .badge.shop{ background: #1E9463; }
+
+  .card-admin-actions{ display:flex; gap:8px; margin-top:12px; }
+  .mini-btn{
+    flex:1; border:1px solid var(--line-card); background:#F5F2EA; color: var(--ink-card);
+    border-radius:8px; padding:7px; font-size:12px; font-family:'Inter'; cursor:pointer; font-weight:600;
+  }
+  .mini-btn.danger{ color:#B3261E; border-color: rgba(179,38,30,0.3); }
+  .mini-btn:hover{ background:#fff; }
+
+  .empty{
+    text-align:center; padding: 64px 20px; color: var(--muted);
+    border: 1px dashed var(--line); border-radius: var(--radius); font-size:14px;
+  }
+  .empty b{ display:block; font-family:'Oswald'; text-transform:uppercase; font-size:18px; color:var(--ink); margin-bottom:6px; letter-spacing:0.02em; }
+
+  /* ---------- Footer phone bar ---------- */
+  .phone-bar{
+    position: fixed; bottom:0; left:0; right:0; z-index: 50;
+    background: linear-gradient(180deg, #17181A, #0E0E10);
+    color: #EFEBE2;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    padding: 14px 20px; border-top: 3px solid var(--accent);
+    box-shadow: 0 -4px 18px rgba(0,0,0,0.4);
+  }
+  .phone-bar a{
+    color: #FFFFFF; text-decoration:none; font-family:'JetBrains Mono'; font-weight:700;
+    font-size: 17px; letter-spacing: 0.02em; display:flex; align-items:center; gap:10px;
+  }
+  .phone-bar .label{ color: var(--accent); font-family:'Inter'; font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:0.03em; }
+  .phone-icon{ width:16px; height:16px; }
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position: fixed; inset:0; background: rgba(8,8,9,0.72); z-index:100;
+    display:flex; align-items:center; justify-content:center; padding: 20px;
+  }
+  .modal{
+    background: var(--surface); color: var(--ink-card);
+    border-radius: var(--radius); max-width: 420px; width:100%;
+    padding: 26px; max-height: 88vh; overflow-y:auto;
+    border-top: 4px solid var(--accent);
+  }
+  .modal h2{ font-size: 20px; margin-bottom: 4px; color: var(--ink-card); }
+  .modal p.hint{ color: var(--muted-card); font-size:13px; margin: 4px 0 18px; font-family:'Inter'; }
+  .field{ margin-bottom: 14px; }
+  .field label{ display:block; font-size:12px; font-weight:600; color: var(--muted-card); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.03em;}
+  .field input[type=text], .field input[type=number], .field textarea{
+    width:100%; padding: 10px 12px; border:1px solid var(--line-card); border-radius:8px;
+    font-family:'Inter'; font-size:14px; background: #F7F4EC; color: var(--ink-card);
+  }
+  .field textarea{ resize:vertical; min-height:56px; }
+  .photo-input-row{ display:flex; align-items:center; gap:12px; }
+  .photo-preview{
+    width:64px; height:64px; border-radius:8px; object-fit:cover; background:#F1EEE7;
+    border:1px solid var(--line-card); flex-shrink:0;
+  }
+  .file-btn{
+    border:1px dashed var(--line-card); border-radius:8px; padding:10px 14px; font-size:13px;
+    cursor:pointer; background: #F7F4EC; font-family:'Inter'; font-weight:600; text-align:center; flex:1;
+  }
+  .file-btn input{ display:none; }
+  .modal-actions{ display:flex; gap:10px; margin-top: 20px; }
+  .btn-primary{ flex:1; background: linear-gradient(90deg, var(--accent), var(--accent-2)); color: var(--accent-ink); border:none; border-radius:8px; padding:12px; font-weight:700; font-family:'Inter'; cursor:pointer; font-size:14px; }
+  .btn-secondary{ background:none; border:1px solid var(--line-card); border-radius:8px; padding:12px 16px; font-family:'Inter'; cursor:pointer; font-size:14px; font-weight:600; color:var(--muted-card); }
+  .error-text{ color:#B3261E; font-size:12px; margin-top: 6px; }
+
+  @media (max-width: 480px){
+    .hero{ padding: 42px 16px 26px; }
+    .grid{ grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 16px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1a1200" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+    </div>
+    <div class="brand-name">ПрокатИнструмент<span>АРЕНДА · ПРОДАЖА</span></div>
+  </div>
+  <button class="admin-toggle" id="adminToggleBtn">Вход для администратора</button>
+</div>
+
+<div class="hero-wrap">
+  <div class="sparks" id="sparks"></div>
+  <div class="hero">
+    <span class="eyebrow" id="heroEyebrow">Прокат на сутки</span>
+    <h1 id="heroTitle">Инструмент <em>под рукой</em>,<br>когда он нужен</h1>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="rent">Прокат <span class="count" id="rentCount"></span></button>
+  <button class="tab-btn" data-tab="shop">Магазин <span class="count" id="shopCount"></span></button>
+</div>
+
+<div class="content">
+  <div class="toolbar-row">
+    <span class="section-title" id="sectionTitle">Инструмент в аренде</span>
+    <button class="add-btn" id="addBtn" style="display:none;">+ Добавить</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="phone-bar">
+  <span class="label">Звонить:</span>
+  <a href="tel:+87058189993">
+    <svg class="phone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    +7 705 818-99-93
+  </a>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+(function(){
+  const RENT_KEY = 'rental-items';
+  const SHOP_KEY = 'shop-items';
+  const ADMIN_PASSWORD = 'prokat2024';
+
+  let isAdmin = false;
+  let currentTab = 'rent';
+  let rentItems = [];
+  let shopItems = [];
+
+  const grid = document.getElementById('grid');
+  const addBtn = document.getElementById('addBtn');
+  const adminToggleBtn = document.getElementById('adminToggleBtn');
+  const sectionTitle = document.getElementById('sectionTitle');
+  const heroEyebrow = document.getElementById('heroEyebrow');
+  const heroTitle = document.getElementById('heroTitle');
+
+  const rentCount = document.getElementById('rentCount');
+  const shopCount = document.getElementById('shopCount');
+  const modalRoot = document.getElementById('modalRoot');
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  // decorative sparks
+  (function initSparks(){
+    const wrap = document.getElementById('sparks');
+    const n = 14;
+    for(let i=0;i<n;i++){
+      const s = document.createElement('span');
+      const size = 2 + Math.random()*3;
+      s.style.width = size+'px';
+      s.style.height = size+'px';
+      s.style.left = Math.random()*100+'%';
+      s.style.top = Math.random()*100+'%';
+      s.style.opacity = (0.3 + Math.random()*0.6).toFixed(2);
+      wrap.appendChild(s);
+    }
+  })();
+
+  async function loadItems(){
+    grid.innerHTML = '<div class="empty">Загрузка…</div>';
+    try{
+      const r = await window.storage.get(RENT_KEY, true);
+      rentItems = r ? JSON.parse(r.value) : [];
+    }catch(e){ rentItems = []; }
+    try{
+      const s = await window.storage.get(SHOP_KEY, true);
+      shopItems = s ? JSON.parse(s.value) : [];
+    }catch(e){ shopItems = []; }
+    render();
+  }
+
+  async function persist(){
+    try{
+      await window.storage.set(RENT_KEY, JSON.stringify(rentItems), true);
+      await window.storage.set(SHOP_KEY, JSON.stringify(shopItems), true);
+    }catch(e){
+      alert('Не удалось сохранить данные. Попробуйте ещё раз.');
+    }
+  }
+
+  function updateHero(){
+    if(currentTab === 'rent'){
+      heroEyebrow.textContent = 'Прокат на сутки';
+      heroTitle.innerHTML = 'Инструмент <em>под рукой</em>,<br>когда он нужен';
+      sectionTitle.textContent = 'Инструмент в аренде';
+    } else {
+      heroEyebrow.textContent = 'В наличии';
+      heroTitle.innerHTML = 'Расходники <em>и мелочь</em>,<br>которую покупают насовсем';
+      sectionTitle.textContent = 'Товары в магазине';
+    }
+  }
+
+  function render(){
+    rentCount.textContent = rentItems.length ? '('+rentItems.length+')' : '';
+    shopCount.textContent = shopItems.length ? '('+shopItems.length+')' : '';
+    updateHero();
+    addBtn.style.display = isAdmin ? 'flex' : 'none';
+    const items = currentTab === 'rent' ? rentItems : shopItems;
+
+    if(!items.length){
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1;">
+        <b>${currentTab === 'rent' ? 'Пока нет инструментов' : 'Пока нет товаров'}</b>
+        ${isAdmin ? 'Нажмите «Добавить», чтобы выложить первую позицию.' : 'Скоро здесь появятся позиции — загляните позже.'}
+      </div>`;
+      return;
+    }
+
+    grid.innerHTML = '';
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const photoHtml = item.photo
+        ? `<img class="card-photo" src="${item.photo}" alt="${escapeHtml(item.name)}">`
+        : `<div class="card-photo placeholder">нет фото</div>`;
+      const priceUnit = currentTab === 'rent' ? '/ сутки' : (item.unit ? item.unit : 'шт');
+      const priceColor = currentTab === 'rent' ? 'rent-color' : 'shop-color';
+      card.innerHTML = `
+        <span class="badge ${currentTab === 'rent' ? 'rent' : 'shop'}">${currentTab === 'rent' ? 'аренда' : 'продажа'}</span>
+        ${photoHtml}
+        <div class="card-body">
+          <h3>${escapeHtml(item.name)}</h3>
+          ${item.desc ? `<div class="card-desc">${escapeHtml(item.desc)}</div>` : ''}
+          <div class="price-row">
+            <span class="price ${priceColor}">${Number(item.price).toLocaleString('ru-RU')} ₸</span>
+            <span class="price-unit">${escapeHtml(priceUnit)}</span>
+          </div>
+          ${isAdmin ? `<div class="card-admin-actions">
+            <button class="mini-btn" data-action="edit" data-id="${item.id}">Изменить</button>
+            <button class="mini-btn danger" data-action="delete" data-id="${item.id}">Удалить</button>
+          </div>` : ''}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str == null ? '' : str;
+    return d.innerHTML;
+  }
+
+  grid.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if(!btn) return;
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+    const list = currentTab === 'rent' ? rentItems : shopItems;
+    const item = list.find(i => i.id === id);
+    if(action === 'edit'){ openItemForm(currentTab, item); }
+    if(action === 'delete'){
+      if(confirm('Удалить «' + item.name + '»?')){
+        const arr = currentTab === 'rent' ? rentItems : shopItems;
+        const idx = arr.findIndex(i => i.id === id);
+        arr.splice(idx,1);
+        persist();
+        render();
+      }
+    }
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTab = btn.dataset.tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+      render();
+    });
+  });
+
+  adminToggleBtn.addEventListener('click', () => {
+    if(isAdmin){
+      isAdmin = false;
+      adminToggleBtn.textContent = 'Вход для администратора';
+      adminToggleBtn.classList.remove('active');
+      render();
+      return;
+    }
+    const pass = prompt('Введите пароль администратора:');
+    if(pass === null) return;
+    if(pass === ADMIN_PASSWORD){
+      isAdmin = true;
+      adminToggleBtn.textContent = 'Режим администратора ✓';
+      adminToggleBtn.classList.add('active');
+      render();
+    } else {
+      alert('Неверный пароль.');
+    }
+  });
+
+  addBtn.addEventListener('click', () => openItemForm(currentTab, null));
+
+  function resizeImage(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxW = 900;
+          const scale = Math.min(1, maxW / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function openItemForm(type, item){
+    const isEdit = !!item;
+    const isRent = type === 'rent';
+    const priceLabel = isRent ? 'Цена за сутки (₸)' : 'Цена (₸)';
+    const wrap = document.createElement('div');
+    wrap.className = 'overlay';
+    wrap.innerHTML = `
+      <div class="modal">
+        <h2>${isEdit ? 'Изменить позицию' : (isRent ? 'Новый инструмент' : 'Новый товар')}</h2>
+        <p class="hint">${isRent ? 'Появится во вкладке «Прокат» с ценой за сутки.' : 'Появится во вкладке «Магазин» как товар для продажи.'}</p>
+        <div class="field">
+          <label>Фото</label>
+          <div class="photo-input-row">
+            <img class="photo-preview" id="photoPreview" src="${item && item.photo ? item.photo : ''}" style="${item && item.photo ? '' : 'display:none;'}">
+            <label class="file-btn">Выбрать фото<input type="file" accept="image/*" id="photoInput"></label>
+          </div>
+        </div>
+        <div class="field">
+          <label>Название</label>
+          <input type="text" id="fName" value="${item ? escapeHtml(item.name) : ''}" placeholder="${isRent ? 'Например: Перфоратор Bosch' : 'Например: Диск отрезной 125мм'}">
+        </div>
+        <div class="field">
+          <label>${priceLabel}</label>
+          <input type="number" id="fPrice" min="0" value="${item ? item.price : ''}" placeholder="0">
+        </div>
+        ${!isRent ? `<div class="field">
+          <label>Единица (необязательно)</label>
+          <input type="text" id="fUnit" value="${item && item.unit ? escapeHtml(item.unit) : ''}" placeholder="шт, упак, м">
+        </div>` : ''}
+        <div class="field">
+          <label>Описание (необязательно)</label>
+          <textarea id="fDesc" placeholder="Короткое описание, состояние, комплектация…">${item && item.desc ? escapeHtml(item.desc) : ''}</textarea>
+        </div>
+        <div id="formError"></div>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="cancelBtn">Отмена</button>
+          <button class="btn-primary" id="saveBtn">${isEdit ? 'Сохранить' : 'Добавить'}</button>
+        </div>
+      </div>
+    `;
+    modalRoot.appendChild(wrap);
+
+    let photoData = item && item.photo ? item.photo : null;
+    const photoInput = wrap.querySelector('#photoInput');
+    const photoPreview = wrap.querySelector('#photoPreview');
+    photoInput.addEventListener('change', async () => {
+      const file = photoInput.files[0];
+      if(!file) return;
+      try{
+        photoData = await resizeImage(file);
+        photoPreview.src = photoData;
+        photoPreview.style.display = 'block';
+      }catch(e){
+        alert('Не удалось загрузить фото.');
+      }
+    });
+
+    wrap.querySelector('#cancelBtn').addEventListener('click', () => wrap.remove());
+    wrap.addEventListener('click', (e) => { if(e.target === wrap) wrap.remove(); });
+
+    wrap.querySelector('#saveBtn').addEventListener('click', async () => {
+      const name = wrap.querySelector('#fName').value.trim();
+      const price = parseFloat(wrap.querySelector('#fPrice').value);
+      const desc = wrap.querySelector('#fDesc').value.trim();
+      const unit = !isRent ? wrap.querySelector('#fUnit').value.trim() : undefined;
+      const errBox = wrap.querySelector('#formError');
+      errBox.innerHTML = '';
+      if(!name){ errBox.innerHTML = '<div class="error-text">Введите название.</div>'; return; }
+      if(isNaN(price) || price < 0){ errBox.innerHTML = '<div class="error-text">Укажите корректную цену.</div>'; return; }
+
+      const arr = isRent ? rentItems : shopItems;
+      if(isEdit){
+        const idx = arr.findIndex(i => i.id === item.id);
+        arr[idx] = { ...arr[idx], name, price, desc, photo: photoData, unit };
+      } else {
+        arr.push({ id: uid(), name, price, desc, photo: photoData, unit });
+      }
+      wrap.querySelector('#saveBtn').textContent = 'Сохранение…';
+      wrap.querySelector('#saveBtn').disabled = true;
+      await persist();
+      wrap.remove();
+      render();
+    });
+  }
+
+  loadItems();
+})();
+</script>
+</body>
+</html>
