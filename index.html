@@ -315,10 +315,14 @@
 
 <div id="modalRoot"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
-  const RENT_KEY = 'rental-items';
-  const SHOP_KEY = 'shop-items';
+  const SUPABASE_URL = 'https://uyouafpqpylasajwmcwz.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_qeO0I0x3PTq9IgXAE_WErg_zP9LGDfw';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const RENT_TABLE = 'rent_items';
+  const SHOP_TABLE = 'shop_items';
   const ADMIN_PASSWORD = 'prokat2024';
 
   let isAdmin = false;
@@ -355,26 +359,54 @@
     }
   })();
 
+  function rowToItem(row){
+    return {
+      id: row.id,
+      name: row.name,
+      price: row.price,
+      desc: row.description || '',
+      photo: row.photo || null,
+      unit: row.unit || undefined
+    };
+  }
+
   async function loadItems(){
     grid.innerHTML = '<div class="empty">Загрузка…</div>';
     try{
-      const r = await window.storage.get(RENT_KEY, true);
-      rentItems = r ? JSON.parse(r.value) : [];
-    }catch(e){ rentItems = []; }
+      const { data, error } = await supabaseClient
+        .from(RENT_TABLE).select('*').order('created_at', { ascending: true });
+      if(error) throw error;
+      rentItems = (data || []).map(rowToItem);
+    }catch(e){ console.error(e); rentItems = []; }
     try{
-      const s = await window.storage.get(SHOP_KEY, true);
-      shopItems = s ? JSON.parse(s.value) : [];
-    }catch(e){ shopItems = []; }
+      const { data, error } = await supabaseClient
+        .from(SHOP_TABLE).select('*').order('created_at', { ascending: true });
+      if(error) throw error;
+      shopItems = (data || []).map(rowToItem);
+    }catch(e){ console.error(e); shopItems = []; }
     render();
   }
 
-  async function persist(){
-    try{
-      await window.storage.set(RENT_KEY, JSON.stringify(rentItems), true);
-      await window.storage.set(SHOP_KEY, JSON.stringify(shopItems), true);
-    }catch(e){
-      alert('Не удалось сохранить данные. Попробуйте ещё раз.');
-    }
+  async function insertItem(isRent, item){
+    const table = isRent ? RENT_TABLE : SHOP_TABLE;
+    const row = { id: item.id, name: item.name, price: item.price, description: item.desc || null, photo: item.photo || null };
+    if(!isRent) row.unit = item.unit || null;
+    const { error } = await supabaseClient.from(table).insert(row);
+    if(error) throw error;
+  }
+
+  async function updateItemRow(isRent, item){
+    const table = isRent ? RENT_TABLE : SHOP_TABLE;
+    const row = { name: item.name, price: item.price, description: item.desc || null, photo: item.photo || null };
+    if(!isRent) row.unit = item.unit || null;
+    const { error } = await supabaseClient.from(table).update(row).eq('id', item.id);
+    if(error) throw error;
+  }
+
+  async function deleteItemRow(isRent, id){
+    const table = isRent ? RENT_TABLE : SHOP_TABLE;
+    const { error } = await supabaseClient.from(table).delete().eq('id', id);
+    if(error) throw error;
   }
 
   function updateHero(){
@@ -449,11 +481,16 @@
     if(action === 'edit'){ openItemForm(currentTab, item); }
     if(action === 'delete'){
       if(confirm('Удалить «' + item.name + '»?')){
-        const arr = currentTab === 'rent' ? rentItems : shopItems;
+        const isRent = currentTab === 'rent';
+        const arr = isRent ? rentItems : shopItems;
         const idx = arr.findIndex(i => i.id === id);
-        arr.splice(idx,1);
-        persist();
-        render();
+        deleteItemRow(isRent, id).then(() => {
+          arr.splice(idx,1);
+          render();
+        }).catch((e) => {
+          console.error(e);
+          alert('Не удалось удалить позицию. Попробуйте ещё раз.');
+        });
       }
     }
   });
@@ -582,17 +619,28 @@
       if(isNaN(price) || price < 0){ errBox.innerHTML = '<div class="error-text">Укажите корректную цену.</div>'; return; }
 
       const arr = isRent ? rentItems : shopItems;
-      if(isEdit){
-        const idx = arr.findIndex(i => i.id === item.id);
-        arr[idx] = { ...arr[idx], name, price, desc, photo: photoData, unit };
-      } else {
-        arr.push({ id: uid(), name, price, desc, photo: photoData, unit });
+      const saveBtn = wrap.querySelector('#saveBtn');
+      saveBtn.textContent = 'Сохранение…';
+      saveBtn.disabled = true;
+      try{
+        if(isEdit){
+          const idx = arr.findIndex(i => i.id === item.id);
+          const updated = { ...arr[idx], name, price, desc, photo: photoData, unit };
+          await updateItemRow(isRent, updated);
+          arr[idx] = updated;
+        } else {
+          const newItem = { id: uid(), name, price, desc, photo: photoData, unit };
+          await insertItem(isRent, newItem);
+          arr.push(newItem);
+        }
+        wrap.remove();
+        render();
+      }catch(e){
+        console.error(e);
+        errBox.innerHTML = '<div class="error-text">Не удалось сохранить. Попробуйте ещё раз.</div>';
+        saveBtn.textContent = isEdit ? 'Сохранить' : 'Добавить';
+        saveBtn.disabled = false;
       }
-      wrap.querySelector('#saveBtn').textContent = 'Сохранение…';
-      wrap.querySelector('#saveBtn').disabled = true;
-      await persist();
-      wrap.remove();
-      render();
     });
   }
 
